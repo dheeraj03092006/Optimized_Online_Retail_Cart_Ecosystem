@@ -1,13 +1,9 @@
+package Optimized_Online_Retail_Cart_Ecosystem;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
-import Optimised-Online-Retail-Ecosystem.Product;
-import shopping.cart.ProductDAO;
-import shopping.cart.Customer;
-import shopping.cart.CustomerDAO;
-import shopping.cart.Order;
-import shopping.cart.OrderDAO;
 
 
 

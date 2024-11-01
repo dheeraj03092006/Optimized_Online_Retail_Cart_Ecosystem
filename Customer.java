@@ -1,3 +1,5 @@
+package Optimized_Online_Retail_Cart_Ecosystem;
+
 class Customer {
     private int id;
     private String name;
@@ -19,20 +21,20 @@ class Customer {
         this.id = id;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
     @Override
     public String toString() {
         return "Customer{id=" + id + ", name='" + name + "', email='" + email + "', address='" + address + "'}";
-    }
-
-    String getName() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    String getEmail() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    String getAddress() {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 }
