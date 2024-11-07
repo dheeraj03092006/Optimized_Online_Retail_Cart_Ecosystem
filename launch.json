@@ -7,7 +7,7 @@
             "request": "launch",
             "mainClass": "ShoppingCartSystem",
             "classpath": [
-                "abso;ute/path/to/mysql-connector-j-9.1.0.jar"
+                "absolute/path/to/mysql-connector-j-9.1.0.jar"
             ]
         }
     ]
