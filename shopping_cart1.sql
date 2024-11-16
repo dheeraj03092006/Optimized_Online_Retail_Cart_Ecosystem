@@ -1,6 +1,6 @@
-CREATE DATABASE shopping_cart;
+CREATE DATABASE shopping_cart1;
 
-USE shopping_cart;
+USE shopping_cart1;
 
 -- Categories Table
 CREATE TABLE categories (
@@ -23,7 +23,8 @@ CREATE TABLE products (
 CREATE TABLE customers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL
+    email VARCHAR(100) UNIQUE NOT NULL,
+    address TEXT
 );
 
 -- Orders Table
