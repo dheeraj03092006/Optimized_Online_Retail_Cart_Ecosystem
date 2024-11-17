@@ -83,6 +83,18 @@ class CustomerDAO {
             e.printStackTrace();
         }
     }
+
+    public boolean deleteCustomer(int customerId) {
+        String query = "DELETE FROM customers WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, customerId);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;  // Returns true if the customer was deleted
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
 
 // Order class
@@ -127,10 +139,10 @@ class OrderDAO {
         connection = DatabaseConnection.getConnection();
     }
 
-    public void addOrderItem(int orderId, int productId, int quantity, double price) {
+    public void addOrderItem(int customerId, int productId, int quantity, double price) {
         String query = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, orderId);
+            stmt.setInt(1, customerId);
             stmt.setInt(2, productId);
             stmt.setInt(3, quantity);
             stmt.setDouble(4, price);
@@ -337,6 +349,19 @@ class ProductDAO {
             e.printStackTrace();
         }
     }
+
+    public boolean deleteProduct(int productId) {
+        String query = "DELETE FROM products WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, productId);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;  // Returns true if the product was deleted
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }
 
 
@@ -364,7 +389,29 @@ class DiscountDAO {
     }
 }
 
+class ReviewDAO
+{
+    private Connection connection;
 
+    public ReviewDAO() {
+        connection = DatabaseConnection.getConnection();
+    }
+
+    public List<String> viewProductReviews(int productId) throws SQLException {
+        List<String> reviews = new ArrayList<>();
+        String query = "SELECT review_text, rating FROM reviews WHERE product_id = ?";
+        PreparedStatement stmt = connection.prepareStatement(query);
+        stmt.setInt(1, productId);
+        ResultSet rs = stmt.executeQuery();
+
+        while (rs.next()) {
+            String review = "Review: " + rs.getString("review_text") + ", Rating: " + rs.getInt("rating");
+            reviews.add(review);
+        }
+
+        return reviews;
+    }
+}
 
 // ShoppingCartSystem class
 
@@ -372,103 +419,163 @@ public class ShoppingCartSystem {
     private static ProductDAO productDAO = new ProductDAO();
     private static DiscountDAO discountDAO = new DiscountDAO();
     private static OrderDAO orderDAO = new OrderDAO();
+    private static ReviewDAO reviewDAO = new ReviewDAO();
     private static Scanner scanner = new Scanner(System.in);
 
-    public static void main(String[] args) {
-        int choice;
-        do {
-            System.out.println("\n=== E-Commerce System ===");
-            System.out.println("1. View Products");
-            System.out.println("2. Add Review");
-            System.out.println("3. View Average Rating");
-            System.out.println("4. Apply Discount");
-            System.out.println("5. Process Payment");
-            System.out.println("6. Add Order Items");
-            System.out.println("7. View Order Details");
-            System.out.println("8. Add Product");
-            System.out.println("9: Add Customer");
-            System.out.println("0. Exit");
-            System.out.print("Enter your choice: ");
-            choice = scanner.nextInt();
-            handleChoice(choice);
-        } while (choice != 0);
-    }
-
-    private static void handleChoice(int choice) {
-        switch (choice) {
-        case 1 -> viewProducts();
-        case 2 -> addReview();
-        case 3 -> viewAverageRating();
-        case 4 -> applyDiscount();
-        case 5 -> processPayment();
-        case 6 -> addOrderItem();
-        case 7 -> viewOrderDetails();
-        case 8 -> addProduct();
-        case 9 -> addCustomer();
-        case 0 -> System.out.println("Exiting the system.");
-        default -> System.out.println("Invalid choice. Please try again.");
+    private static Connection connection;
+    
+        public ShoppingCartSystem() {
+            connection = DatabaseConnection.getConnection();
         }
-    }
-
-    private static void viewProducts() {
-        List<Product> products = productDAO.getAllProducts();
-        for (Product product : products) {
-            System.out.println(product);
+    
+        public static void main(String[] args) {
+            int choice;
+            do {
+                System.out.println("\nE-Commerce System Menu:");
+                System.out.println("1. View Products");
+                System.out.println("2. Add a New Customer");
+                System.out.println("3. Create an Order");
+                System.out.println("4. View Order Details");
+                System.out.println("5. Add Product to Cart");
+                System.out.println("6. Process Payment");
+                System.out.println("7. View Product Reviews");
+                System.out.println("8. Add a New Product");
+                System.out.println("9. Add a Review");
+                System.out.println("10. View Average Rating of a Product");
+                System.out.println("11. Delete Product");
+                System.out.println("12. Delete Customer");
+                System.out.println("0. Exit");
+                System.out.print("Enter your choice: ");
+                choice = scanner.nextInt();
+                handleChoice(choice);
+            } while (choice != 0);
         }
-    }
-
-    private static void addReview() {
-        System.out.print("Enter Product ID: ");
-        int productId = scanner.nextInt();
-        System.out.print("Enter Customer ID: ");
-        int customerId = scanner.nextInt();
-        System.out.print("Enter Rating (1-5): ");
-        int rating = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        System.out.print("Enter Review: ");
-        String review = scanner.nextLine();
-        productDAO.addReview(productId, customerId, rating, review);
-    }
-
-    private static void viewAverageRating() {
-        System.out.print("Enter Product ID: ");
-        int productId = scanner.nextInt();
-        double avgRating = productDAO.getAverageRating(productId);
-        System.out.println("Average Rating: " + avgRating);
-    }
-
-    private static void applyDiscount() {
-        System.out.print("Enter Discount Code: ");
-        String discountCode = scanner.nextLine();
-        double discountPercentage = discountDAO.getDiscountPercentage(discountCode);
-        if (discountPercentage > 0) {
-            System.out.println("Discount Applied: " + (discountPercentage * 100) + "%");
-        } else {
-            System.out.println("Invalid discount code.");
+    
+        private static void handleChoice(int choice) {
+            switch (choice) {
+            case 1 -> viewProducts();
+            case 2 -> addCustomer();
+            case 3 -> addOrderItem();
+            case 4 -> viewOrderDetails();
+            case 5 -> addProduct();
+            case 6 -> processPayment();
+            case 7 -> viewProductReviews();
+            case 8 -> addProduct();
+            case 9 -> addReview();
+            case 10-> viewAverageRating();
+            case 11-> deleteProduct();
+            case 12-> deleteCustomer();
+            case 0 -> System.out.println("Exiting the system.");
+            default -> System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    
+        private static void viewProducts() {
+            List<Product> products = productDAO.getAllProducts();
+            for (Product product : products) {
+                System.out.println(product);
+            }
+        }
+    
+        private static void addReview() {
+            System.out.print("Enter Product ID: ");
+            int productId = scanner.nextInt();
+            System.out.print("Enter Customer ID: ");
+            int customerId = scanner.nextInt();
+            System.out.print("Enter Rating (1-5): ");
+            int rating = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+            System.out.print("Enter Review: ");
+            String review = scanner.nextLine();
+            productDAO.addReview(productId, customerId, rating, review);
+        }
+    
+        private static void viewAverageRating() {
+            System.out.print("Enter Product ID: ");
+            int productId = scanner.nextInt();
+            double avgRating = productDAO.getAverageRating(productId);
+            System.out.println("Average Rating: " + avgRating);
+        }
+    
+        private static void applyDiscount() {
+            System.out.print("Enter Discount Code: ");
+            String discountCode = scanner.nextLine();
+            double discountPercentage = discountDAO.getDiscountPercentage(discountCode);
+            if (discountPercentage > 0) {
+                System.out.println("Discount Applied: " + (discountPercentage * 100) + "%");
+            } else {
+                System.out.println("Invalid discount code.");
+            }
+        }
+        
+    
+        private static void processPayment() {
+            System.out.print("Enter Order ID: ");
+            int orderId = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+            System.out.print("Enter Payment Method: ");
+            String paymentMethod = scanner.nextLine();
+            orderDAO.processPayment(orderId, paymentMethod);
+        }
+    
+        private static void addOrderItem() {
+            System.out.print("Enter customer ID: ");
+            int customerId = scanner.nextInt();
+            
+            // Check if customer exists
+            String query = "SELECT id FROM customers WHERE id = ?";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, customerId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                System.out.print("Enter Product ID: ");
+                int productId = scanner.nextInt();
+                
+                // Check if product exists
+                String query1 = "SELECT id FROM products WHERE id = ?";
+                try (PreparedStatement stmt1 = connection.prepareStatement(query1)) {
+                    stmt1.setInt(1, productId);
+                    ResultSet rs1 = stmt1.executeQuery();
+                    
+                    if (rs1.next()) {
+                        System.out.print("Enter Quantity: ");
+                        int quantity = scanner.nextInt();
+                        
+                        // Get the available quantity of the product
+                        String query2 = "SELECT quantity, price FROM products WHERE id = ?";
+                        try (PreparedStatement stmt2 = connection.prepareStatement(query2)) {
+                            stmt2.setInt(1, productId);
+                            ResultSet rs2 = stmt2.executeQuery();
+                            
+                            if (rs2.next()) {
+                                int availableQuantity = rs2.getInt("quantity");
+                                double price = rs2.getDouble("price");
+                                
+                                // Check if required quantity is available
+                                if (availableQuantity < quantity) {
+                                    System.out.println("The required quantity is not available. Available quantity: " + availableQuantity);
+                                } else {
+                                    // Calculate total price
+                                    double totalPrice = price * quantity;
+                                    // Add the order item
+                                    orderDAO.addOrderItem(customerId, productId, quantity, totalPrice);
+                                    System.out.println("Order item added successfully!");
+                                }
+                            }
+                        }
+                    } else {
+                        System.out.println("Product not found.");
+                    }
+                }
+            } else {
+                System.out.println("Customer not found.");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
     
-
-    private static void processPayment() {
-        System.out.print("Enter Order ID: ");
-        int orderId = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        System.out.print("Enter Payment Method: ");
-        String paymentMethod = scanner.nextLine();
-        orderDAO.processPayment(orderId, paymentMethod);
-    }
-
-    private static void addOrderItem() {
-        System.out.print("Enter Order ID: ");
-        int orderId = scanner.nextInt();
-        System.out.print("Enter Product ID: ");
-        int productId = scanner.nextInt();
-        System.out.print("Enter Quantity: ");
-        int quantity = scanner.nextInt();
-        System.out.print("Enter Price: ");
-        double price = scanner.nextDouble();
-        orderDAO.addOrderItem(orderId, productId, quantity, price);
-    }
 
     private static void viewOrderDetails() {
         System.out.print("Enter Order ID: ");
@@ -520,5 +627,55 @@ public class ShoppingCartSystem {
         // Print confirmation
         System.out.println("Customer added successfully!");
     }
+
+    public static void viewProductReviews() {
+        Scanner scanner = new Scanner(System.in);
+    
+        try {
+            System.out.print("Enter Product ID: ");
+            int productId = scanner.nextInt();
+    
+            List<String> reviews = reviewDAO.viewProductReviews(productId);
+            if (reviews.isEmpty()) {
+                System.out.println("No reviews available for this product.");
+            } else {
+                System.out.println("Reviews for Product ID " + productId + ":");
+                for (String review : reviews) {
+                    System.out.println(review);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error fetching product reviews: " + e.getMessage());
+        }
+    }
+    
+
+
+    public static void deleteProduct() {
+        System.out.print("Enter Product ID to delete: ");
+        int productId = scanner.nextInt();
+
+        ProductDAO productDAO = new ProductDAO();
+        boolean result = productDAO.deleteProduct(productId);
+        if (result) {
+            System.out.println("Product deleted successfully!");
+        } else {
+            System.out.println("Failed to delete product.");
+        }
+    }
+
+    public static void deleteCustomer() {
+        System.out.print("Enter Customer ID to delete: ");
+        int customerId = scanner.nextInt();
+
+        CustomerDAO customerDAO = new CustomerDAO(DatabaseConnection.getConnection());
+        boolean result = customerDAO.deleteCustomer(customerId);
+        if (result) {
+            System.out.println("Customer deleted successfully!");
+        } else {
+            System.out.println("Failed to delete customer.");
+        }
+    }
+
     
 }
