@@ -140,7 +140,7 @@ class OrderDAO {
     }
 
     public void addOrderItem(int customerId, int productId, int quantity, double price) {
-        String query = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
+        String query = "INSERT INTO order_items (customer_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setInt(1, customerId);
             stmt.setInt(2, productId);
@@ -157,7 +157,7 @@ class OrderDAO {
         String query = "SELECT oi.id, p.name, oi.quantity, oi.price " +
                        "FROM order_items oi " +
                        "JOIN products p ON oi.product_id = p.id " +
-                       "WHERE oi.order_id = ?";
+                       "WHERE oi.id = ?";
         List<String> orderItems = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setInt(1, orderId);
@@ -424,154 +424,153 @@ public class ShoppingCartSystem {
 
     private static Connection connection;
     
-        public ShoppingCartSystem() {
-            connection = DatabaseConnection.getConnection();
-        }
+    public ShoppingCartSystem() {
+        connection = DatabaseConnection.getConnection();
+    }
     
-        public static void main(String[] args) {
-            int choice;
-            do {
-                System.out.println("\nE-Commerce System Menu:");
-                System.out.println("1. View Products");
-                System.out.println("2. Add a New Customer");
-                System.out.println("3. Create an Order");
-                System.out.println("4. View Order Details");
-                System.out.println("5. Add Product to Cart");
-                System.out.println("6. Process Payment");
-                System.out.println("7. View Product Reviews");
-                System.out.println("8. Add a New Product");
-                System.out.println("9. Add a Review");
-                System.out.println("10. View Average Rating of a Product");
-                System.out.println("11. Delete Product");
-                System.out.println("12. Delete Customer");
-                System.out.println("0. Exit");
-                System.out.print("Enter your choice: ");
-                choice = scanner.nextInt();
-                handleChoice(choice);
-            } while (choice != 0);
-        }
+    public static void main(String[] args) {
+        ShoppingCartSystem shoppingCartSystem = new ShoppingCartSystem();
+        int choice;
+        do {
+            System.out.println("\nE-Commerce System Menu:");
+            System.out.println("1. View Products");
+            System.out.println("2. Add a New Customer");
+            System.out.println("3. Create an Order");
+            System.out.println("4. View Order Details");
+            System.out.println("5. Add a new Product");
+            System.out.println("6. Process Payment");
+            System.out.println("7. View Product Reviews");
+            System.out.println("8. Add a Review");
+            System.out.println("9. View Average Rating of a Product");
+            System.out.println("10. Delete Product");
+            System.out.println("11. Delete Customer");
+            System.out.println("0. Exit");
+            System.out.print("Enter your choice: ");
+            choice = scanner.nextInt();
+            handleChoice(choice);
+        } while (choice != 0);
+    }
     
-        private static void handleChoice(int choice) {
-            switch (choice) {
-            case 1 -> viewProducts();
-            case 2 -> addCustomer();
-            case 3 -> addOrderItem();
-            case 4 -> viewOrderDetails();
-            case 5 -> addProduct();
-            case 6 -> processPayment();
-            case 7 -> viewProductReviews();
-            case 8 -> addProduct();
-            case 9 -> addReview();
-            case 10-> viewAverageRating();
-            case 11-> deleteProduct();
-            case 12-> deleteCustomer();
-            case 0 -> System.out.println("Exiting the system.");
-            default -> System.out.println("Invalid choice. Please try again.");
-            }
+    private static void handleChoice(int choice) {
+        switch (choice) {
+        case 1 -> viewProducts();
+        case 2 -> addCustomer();
+        case 3 -> addOrderItem();
+        case 4 -> viewOrderDetails();
+        case 5 -> addProduct();
+        case 6 -> processPayment();
+        case 7 -> viewProductReviews();
+        case 8 -> addReview();
+        case 9-> viewAverageRating();
+        case 10-> deleteProduct();
+        case 11-> deleteCustomer();
+        case 0 -> System.out.println("Exiting the system.");
+        default -> System.out.println("Invalid choice. Please try again.");
         }
+    }
     
-        private static void viewProducts() {
-            List<Product> products = productDAO.getAllProducts();
-            for (Product product : products) {
-                System.out.println(product);
-            }
+    private static void viewProducts() {
+        List<Product> products = productDAO.getAllProducts();
+        for (Product product : products) {
+            System.out.println(product);
         }
+    }
     
-        private static void addReview() {
-            System.out.print("Enter Product ID: ");
-            int productId = scanner.nextInt();
-            System.out.print("Enter Customer ID: ");
-            int customerId = scanner.nextInt();
-            System.out.print("Enter Rating (1-5): ");
-            int rating = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
-            System.out.print("Enter Review: ");
-            String review = scanner.nextLine();
-            productDAO.addReview(productId, customerId, rating, review);
-        }
+    private static void addReview() {
+        System.out.print("Enter Product ID: ");
+        int productId = scanner.nextInt();
+        System.out.print("Enter Customer ID: ");
+        int customerId = scanner.nextInt();
+        System.out.print("Enter Rating (1-5): ");
+        int rating = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+        System.out.print("Enter Review: ");
+        String review = scanner.nextLine();
+        productDAO.addReview(productId, customerId, rating, review);
+    }
     
-        private static void viewAverageRating() {
-            System.out.print("Enter Product ID: ");
-            int productId = scanner.nextInt();
-            double avgRating = productDAO.getAverageRating(productId);
-            System.out.println("Average Rating: " + avgRating);
+    private static void viewAverageRating() {
+        System.out.print("Enter Product ID: ");
+        int productId = scanner.nextInt();
+        double avgRating = productDAO.getAverageRating(productId);
+        System.out.println("Average Rating: " + avgRating);
+    }
+
+    private static void applyDiscount() {
+        System.out.print("Enter Discount Code: ");
+        String discountCode = scanner.nextLine();
+        double discountPercentage = discountDAO.getDiscountPercentage(discountCode);
+        if (discountPercentage > 0) {
+            System.out.println("Discount Applied: " + (discountPercentage * 100) + "%");
+        } else {
+            System.out.println("Invalid discount code.");
         }
+    }
     
-        private static void applyDiscount() {
-            System.out.print("Enter Discount Code: ");
-            String discountCode = scanner.nextLine();
-            double discountPercentage = discountDAO.getDiscountPercentage(discountCode);
-            if (discountPercentage > 0) {
-                System.out.println("Discount Applied: " + (discountPercentage * 100) + "%");
-            } else {
-                System.out.println("Invalid discount code.");
-            }
-        }
+
+    private static void processPayment() {
+        System.out.print("Enter Order ID: ");
+        int orderId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+        System.out.print("Enter Payment Method: ");
+        String paymentMethod = scanner.nextLine();
+        orderDAO.processPayment(orderId, paymentMethod);
+    }
+    
+    private static void addOrderItem() {
+        System.out.print("Enter customer ID: ");
+        int customerId = scanner.nextInt();
         
-    
-        private static void processPayment() {
-            System.out.print("Enter Order ID: ");
-            int orderId = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
-            System.out.print("Enter Payment Method: ");
-            String paymentMethod = scanner.nextLine();
-            orderDAO.processPayment(orderId, paymentMethod);
-        }
-    
-        private static void addOrderItem() {
-            System.out.print("Enter customer ID: ");
-            int customerId = scanner.nextInt();
-            
-            // Check if customer exists
-            String query = "SELECT id FROM customers WHERE id = ?";
-            try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, customerId);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                System.out.print("Enter Product ID: ");
-                int productId = scanner.nextInt();
+        // Check if customer exists
+        String query = "SELECT id FROM customers WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        stmt.setInt(1, customerId);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            System.out.print("Enter Product ID: ");
+            int productId = scanner.nextInt();
                 
-                // Check if product exists
-                String query1 = "SELECT id FROM products WHERE id = ?";
-                try (PreparedStatement stmt1 = connection.prepareStatement(query1)) {
-                    stmt1.setInt(1, productId);
-                    ResultSet rs1 = stmt1.executeQuery();
+            // Check if product exists
+            String query1 = "SELECT id FROM products WHERE id = ?";
+            try (PreparedStatement stmt1 = connection.prepareStatement(query1)) {
+                stmt1.setInt(1, productId);
+                ResultSet rs1 = stmt1.executeQuery();
+                
+                if (rs1.next()) {
+                    System.out.print("Enter Quantity: ");
+                    int quantity = scanner.nextInt();
                     
-                    if (rs1.next()) {
-                        System.out.print("Enter Quantity: ");
-                        int quantity = scanner.nextInt();
+                    // Get the available quantity of the product
+                    String query2 = "SELECT quantity, price FROM products WHERE id = ?";
+                    try (PreparedStatement stmt2 = connection.prepareStatement(query2)) {
+                        stmt2.setInt(1, productId);
+                        ResultSet rs2 = stmt2.executeQuery();
                         
-                        // Get the available quantity of the product
-                        String query2 = "SELECT quantity, price FROM products WHERE id = ?";
-                        try (PreparedStatement stmt2 = connection.prepareStatement(query2)) {
-                            stmt2.setInt(1, productId);
-                            ResultSet rs2 = stmt2.executeQuery();
+                        if (rs2.next()) {
+                            int availableQuantity = rs2.getInt("quantity");
+                            double price = rs2.getDouble("price");
                             
-                            if (rs2.next()) {
-                                int availableQuantity = rs2.getInt("quantity");
-                                double price = rs2.getDouble("price");
-                                
-                                // Check if required quantity is available
-                                if (availableQuantity < quantity) {
-                                    System.out.println("The required quantity is not available. Available quantity: " + availableQuantity);
-                                } else {
-                                    // Calculate total price
-                                    double totalPrice = price * quantity;
-                                    // Add the order item
-                                    orderDAO.addOrderItem(customerId, productId, quantity, totalPrice);
-                                    System.out.println("Order item added successfully!");
-                                }
+                            // Check if required quantity is available
+                            if (availableQuantity < quantity) {
+                                System.out.println("The required quantity is not available. Available quantity: " + availableQuantity);
+                            } else {
+                                // Calculate total price
+                                double totalPrice = price * quantity;
+                                // Add the order item
+                                orderDAO.addOrderItem(customerId, productId, quantity, totalPrice);
+                                System.out.println("Order item added successfully!");
                             }
                         }
-                    } else {
+                    }
+                } else {
                         System.out.println("Product not found.");
                     }
-                }
-            } else {
+            }
+        } else {
                 System.out.println("Customer not found.");
             }
-        } catch (SQLException e) {
+    } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -676,6 +675,4 @@ public class ShoppingCartSystem {
             System.out.println("Failed to delete customer.");
         }
     }
-
-    
 }
