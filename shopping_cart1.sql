@@ -27,15 +27,6 @@ CREATE TABLE customers (
     address TEXT
 );
 
--- Orders Table
-CREATE TABLE orders (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NOT NULL,
-    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    total_amount DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-);
-
 -- Wishlists Table
 CREATE TABLE wishlists (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,7 +43,7 @@ CREATE TABLE payments (
     payment_method VARCHAR(50) NOT NULL,
     payment_status VARCHAR(20) DEFAULT 'Pending',
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES order_items(id) ON DELETE CASCADE
 );
 
 -- Reviews Table
