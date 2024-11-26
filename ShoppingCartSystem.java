@@ -62,6 +62,7 @@ class Customer {
 class CustomerDAO {
     private Connection connection;
 
+
     public CustomerDAO(Connection connection) {
         this.connection = connection;
     }
@@ -153,6 +154,37 @@ class OrderDAO {
         }
     }
 
+    public List<String> getOrderDetailsByCustomerId(int customerId) {
+        List<String> orderDetails = new ArrayList<>();
+        String sql = "{ CALL ViewOrdersByCustomerId(?) }"; // Procedure call
+        
+        try (Connection conn = DatabaseConnection.getConnection(); 
+             CallableStatement stmt = conn.prepareCall(sql)) {
+             
+            stmt.setInt(1, customerId); // Set the customer ID
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                // Retrieve and format the details
+                String detail = String.format(
+                    "Order ID: %d, Customer: %s, Email: %s, Product: %s, Quantity: %d, Total Price: %.2f",
+                    rs.getInt("Order_ID"),
+                    rs.getString("Customer_Name"),
+                    rs.getString("Customer_Email"),
+                    rs.getString("Product_Name"),
+                    rs.getInt("Quantity"),
+                    rs.getDouble("Total_Price")
+                );
+                orderDetails.add(detail);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Handle exceptions
+        }
+        
+        return orderDetails;
+    }
+    
+
     public List<String> getOrderItems(int orderId) {
         String query = "SELECT oi.id, p.name, oi.quantity, oi.price " +
                        "FROM order_items oi " +
@@ -175,21 +207,97 @@ class OrderDAO {
         return orderItems;
     }
 
-    public void processPayment(int orderId, String paymentMethod) {
-        String query = "INSERT INTO payments (order_id, payment_method, payment_status, transaction_date) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, orderId);
-            stmt.setString(2, paymentMethod);
-            stmt.setString(3, "Completed");
-            if (query.contains("transaction_date")) {
-                stmt.setTimestamp(4, new Timestamp(System.currentTimeMillis())); // If payment_date is used
+    private boolean validatePaymentDetails(String paymentMethod, Map<String, String> paymentDetails) {
+        switch (paymentMethod.toLowerCase()) {
+            case "card":
+                return paymentDetails.containsKey("cardNumber") &&
+                       paymentDetails.get("cardNumber").matches("\\d{16}") && // 16-digit card number
+                       paymentDetails.containsKey("expiryDate") &&
+                       paymentDetails.get("expiryDate").matches("(0[1-9]|1[0-2])/\\d{2}"); // MM/YY format
+    
+            case "upi":
+                return paymentDetails.containsKey("upiId") &&
+                       paymentDetails.get("upiId").matches("[a-zA-Z0-9.-_]+@[a-zA-Z]+"); // Basic UPI ID format
+    
+            case "netbanking":
+                return paymentDetails.containsKey("bankName") &&
+                       paymentDetails.get("bankName").length() > 2 &&
+                       paymentDetails.containsKey("accountNumber") &&
+                       paymentDetails.get("accountNumber").matches("\\d+"); // Numeric account number
+    
+            case "wallet":
+                return paymentDetails.containsKey("walletId") &&
+                       paymentDetails.get("walletId").length() > 5;
+    
+            default:
+                return false; // Invalid payment method
+        }
+    }
+    
+    public void processPaymentForCustomer(int customerId, String paymentMethod, Map<String, String> paymentDetails) {
+        System.out.println("Processing payment for Customer ID: " + customerId);
+    
+        // Validate payment details
+        if (!validatePaymentDetails(paymentMethod, paymentDetails)) {
+            System.out.println("Invalid payment details for method: " + paymentMethod);
+            return;
+        }
+    
+        String totalAmountQuery = "SELECT SUM(price) AS totalAmount FROM order_items WHERE customer_id = ?";
+        String deleteOrdersQuery = "DELETE FROM order_items WHERE customer_id = ?";
+        String insertPaymentQuery = "INSERT INTO payments (customer_id, payment_method, payment_status, transaction_date, payment_details) VALUES (?, ?, ?, ?, ?)";
+    
+        try (PreparedStatement totalStmt = connection.prepareStatement(totalAmountQuery);
+             PreparedStatement deleteStmt = connection.prepareStatement(deleteOrdersQuery);
+             PreparedStatement paymentStmt = connection.prepareStatement(insertPaymentQuery)) {
+    
+            // Calculate total amount
+            totalStmt.setInt(1, customerId);
+            ResultSet rs = totalStmt.executeQuery();
+            double totalAmount = 0;
+            if (rs.next()) {
+                totalAmount = rs.getDouble("totalAmount");
             }
-            stmt.executeUpdate();
-            System.out.println("Payment processed successfully!");
+    
+            if (totalAmount == 0) {
+                System.out.println("No orders found for Customer ID: " + customerId);
+                return;
+            }
+    
+            System.out.println("Total Amount for Customer ID " + customerId + ": " + totalAmount);
+    
+            // Insert payment record
+            paymentStmt.setInt(1, customerId);
+            paymentStmt.setString(2, paymentMethod);
+            paymentStmt.setString(3, "Completed");
+            paymentStmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+            paymentStmt.setString(5, createJsonFromMap(paymentDetails)); // Convert Map to JSON
+            paymentStmt.executeUpdate();
+    
+            // Delete orders after successful payment
+            deleteStmt.setInt(1, customerId);
+            deleteStmt.executeUpdate();
+    
+            System.out.println("Payment of " + totalAmount + " for Customer ID " + customerId + " processed successfully.");
         } catch (SQLException e) {
+            System.err.println("Error processing payment for Customer ID: " + customerId);
             e.printStackTrace();
         }
     }
+    
+    private String createJsonFromMap(Map<String, String> map) {
+        StringBuilder json = new StringBuilder("{");
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            json.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\",");
+        }
+        if (json.length() > 1) {
+            json.deleteCharAt(json.length() - 1); // Remove trailing comma
+        }
+        json.append("}");
+        return json.toString();
+    }
+    
+    
 
     public void addOrder(Order order) {
         String query = "INSERT INTO orders (customer_id, total) VALUES (?, ?)";
@@ -509,13 +617,54 @@ public class ShoppingCartSystem {
     
 
     private static void processPayment() {
-        System.out.print("Enter Order ID: ");
-        int orderId = scanner.nextInt();
+        System.out.print("Enter Customer ID: ");
+        int customerId = scanner.nextInt();
         scanner.nextLine(); // Consume newline
-        System.out.print("Enter Payment Method: ");
+        System.out.print("Enter Payment Method (Card/UPI/NetBanking/Wallet): ");
         String paymentMethod = scanner.nextLine();
-        orderDAO.processPayment(orderId, paymentMethod);
-    }
+    
+        Map<String, String> paymentDetails = new HashMap<>();
+        switch (paymentMethod.toLowerCase()) {
+            case "card":
+                System.out.print("Enter Card Number: ");
+                String cardNumber = scanner.nextLine();
+                System.out.print("Enter Card Holder Name: ");
+                String cardHolderName = scanner.nextLine();
+                System.out.print("Enter Expiry Date (MM/YY): ");
+                String expiryDate = scanner.nextLine();
+                paymentDetails.put("cardNumber", cardNumber);
+                paymentDetails.put("cardHolderName", cardHolderName);
+                paymentDetails.put("expiryDate", expiryDate);
+                break;
+    
+            case "upi":
+                System.out.print("Enter UPI ID: ");
+                String upiId = scanner.nextLine();
+                paymentDetails.put("upiId", upiId);
+                break;
+    
+            case "netbanking":
+                System.out.print("Enter Bank Name: ");
+                String bankName = scanner.nextLine();
+                System.out.print("Enter Account Number: ");
+                String accountNumber = scanner.nextLine();
+                paymentDetails.put("bankName", bankName);
+                paymentDetails.put("accountNumber", accountNumber);
+                break;
+    
+            case "wallet":
+                System.out.print("Enter Wallet ID: ");
+                String walletId = scanner.nextLine();
+                paymentDetails.put("walletId", walletId);
+                break;
+    
+            default:
+                System.out.println("Invalid payment method.");
+                return;
+        }
+    
+        orderDAO.processPaymentForCustomer(customerId, paymentMethod, paymentDetails);
+    }    
     
     private static void addOrderItem() {
         System.out.print("Enter customer ID: ");
@@ -577,14 +726,22 @@ public class ShoppingCartSystem {
     
 
     private static void viewOrderDetails() {
-        System.out.print("Enter Order ID: ");
-        int orderId = scanner.nextInt();
-        List<String> orderItems = orderDAO.getOrderItems(orderId);
-        for (String item : orderItems) {
-            System.out.println(item);
+        System.out.print("Enter Customer ID: ");
+        int customerId = scanner.nextInt();
+        
+        // Call the procedure to fetch order details for the given customer
+        List<String> orderDetails = orderDAO.getOrderDetailsByCustomerId(customerId);
+        
+        if (orderDetails.isEmpty()) {
+            System.out.println("No orders found for the given Customer ID.");
+        } else {
+            System.out.println("Order Details:");
+            for (String detail : orderDetails) {
+                System.out.println(detail);
+            }
         }
     }
-
+    
     private static void addProduct() {
         System.out.print("Enter Product Name: ");
         scanner.nextLine(); // Consume newline

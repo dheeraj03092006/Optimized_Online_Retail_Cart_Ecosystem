@@ -39,12 +39,18 @@ CREATE TABLE wishlists (
 -- Payments Table
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
+    customer_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     payment_status VARCHAR(20) DEFAULT 'Pending',
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES order_items(id) ON DELETE CASCADE
+    card_number VARCHAR(16), -- For credit/debit card payments
+    upi_id VARCHAR(50), -- For UPI payments
+    bank_name VARCHAR(50), -- For net banking
+    wallet_id VARCHAR(50), -- For wallet payments
+    payment_details JSON,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
+
 
 -- Reviews Table
 CREATE TABLE reviews (
@@ -77,3 +83,52 @@ CREATE TABLE order_items (
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
+
+DELIMITER $$
+
+CREATE PROCEDURE ViewOrdersByCustomerId(IN customer_id INT)
+BEGIN
+    SELECT 
+        oi.id AS Order_ID,
+        c.name AS Customer_Name,
+        c.email AS Customer_Email,
+        p.name AS Product_Name,
+        oi.quantity AS Quantity,
+        oi.price AS Total_Price,
+        p.price AS Product_Price,
+        p.description AS Product_Description
+    FROM 
+        order_items oi
+    JOIN 
+        customers c ON oi.customer_id = c.id
+    JOIN 
+        products p ON oi.product_id = p.id
+    WHERE 
+        oi.customer_id = customer_id
+    ORDER BY 
+        oi.customer_id;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE DeleteOrdersAfterPayment(IN customer_id INT)
+BEGIN
+    -- Check if the payment is successful for the given customer_id
+    IF EXISTS (
+        SELECT 1 
+        FROM payments 
+        WHERE customer_id = customer_id AND payment_status = 'Successful'
+    ) THEN
+        -- Delete the orders from order_items table
+        DELETE FROM order_items 
+        WHERE customer_id = customer_id;
+    ELSE
+        -- If no successful payment is found, signal the issue
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'No successful payment found for the provided customer ID.';
+    END IF;
+END$$
+
+DELIMITER ;
