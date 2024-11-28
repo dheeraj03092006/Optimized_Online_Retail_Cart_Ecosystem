@@ -27,15 +27,6 @@ CREATE TABLE customers (
     address TEXT
 );
 
--- Wishlists Table
-CREATE TABLE wishlists (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NOT NULL,
-    product_id INT NOT NULL,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-);
-
 -- Payments Table
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,15 +53,6 @@ CREATE TABLE reviews (
     review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-);
-
--- Discounts Table
-CREATE TABLE discounts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(20) NOT NULL UNIQUE,
-    discount_percentage DECIMAL(5, 2) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL
 );
 
 -- Order Items Table

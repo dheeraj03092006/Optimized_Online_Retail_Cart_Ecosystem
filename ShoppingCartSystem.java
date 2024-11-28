@@ -4,9 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 class DatabaseConnection {
     private static final String URL = "jdbc:mysql://localhost:3306/shopping_cart1";
@@ -538,60 +536,109 @@ public class ShoppingCartSystem extends JFrame {
     private static CustomerDAO customerDAO = new CustomerDAO(DatabaseConnection.getConnection());
 
     public ShoppingCartSystem() {
-        setTitle("E-Commerce System");
+        setTitle("Optimized Online Retail Cart Ecosystem");
         setSize(600, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
+        // User type selection
+        String[] options = {"Customer", "Administrator"};
+        int choice = JOptionPane.showOptionDialog(
+            null,
+            "Select User Type:",
+            "Login",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.INFORMATION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+
+        String userType = (choice == 1) ? "administrator" : "customer";
+
+        // Verify password for administrator
+        if ("administrator".equals(userType)) {
+            String password = JOptionPane.showInputDialog(null, "Enter Administrator Password:");
+            if (!"admin123".equals(password)) { // Example password is "admin123"
+                JOptionPane.showMessageDialog(null, "Incorrect Password. Exiting.");
+                System.exit(0);
+            }
+        }
+
         // Create menu bar
         JMenuBar menuBar = new JMenuBar();
+        menuBar.setLayout(new FlowLayout(FlowLayout.CENTER));
+        menuBar.setBackground(Color.BLACK);
         JMenu menu = new JMenu("Options");
+        menu.setFont(new Font("Arial", Font.BOLD, 20));
+        menu.setForeground(Color.WHITE);
+        menu.setOpaque(true);
+        menu.setBackground(Color.RED);
         menuBar.add(menu);
-        
-        // Add menu items
-        JMenuItem viewProductsItem = new JMenuItem("View Products");
-        JMenuItem addCustomerItem = new JMenuItem("Add Customer");
-        JMenuItem createOrderItem = new JMenuItem("Create Order");
-        JMenuItem viewOrderDetailsItem = new JMenuItem("View Order Details");
-        JMenuItem addProductItem = new JMenuItem("Add Product");
-        JMenuItem processPaymentItem = new JMenuItem("Process Payment");
-        JMenuItem viewProductReviewsItem = new JMenuItem("View Product Reviews");
-        JMenuItem addReviewItem = new JMenuItem("Add Review");
-        JMenuItem viewAverageRatingItem = new JMenuItem("View Average Rating");
-        JMenuItem deleteProductItem = new JMenuItem("Delete Product");
-        JMenuItem deleteCustomerItem = new JMenuItem("Delete Customer");
-        JMenuItem exitItem = new JMenuItem("Exit");
 
-        menu.add(viewProductsItem);
-        menu.add(addCustomerItem);
-        menu.add(createOrderItem);
-        menu.add(viewOrderDetailsItem);
-        menu.add(addProductItem);
-        menu.add(processPaymentItem);
-        menu.add(viewProductReviewsItem);
-        menu.add(addReviewItem);
-        menu.add(viewAverageRatingItem);
-        menu.add(deleteProductItem);
-        menu.add(deleteCustomerItem);
-        menu.add(exitItem);
+        // Add menu items based on user type
+        if ("customer".equals(userType)) {
+            JMenuItem viewProductsItem = new JMenuItem("View Products");
+            JMenuItem addCustomerItem = new JMenuItem("Add Customer");
+            JMenuItem createOrderItem = new JMenuItem("Create Order");
+            JMenuItem viewOrderDetailsItem = new JMenuItem("View Order Details");
+            JMenuItem processPaymentItem = new JMenuItem("Process Payment");
+            JMenuItem viewProductReviewsItem = new JMenuItem("View Product Reviews");
+            JMenuItem addReviewItem = new JMenuItem("Add Review");
+            JMenuItem viewAverageRatingItem = new JMenuItem("View Average Rating");
+            JMenuItem exitItem = new JMenuItem("Exit");
+
+            menu.add(viewProductsItem);
+            menu.add(addCustomerItem);
+            menu.add(createOrderItem);
+            menu.add(viewOrderDetailsItem);
+            menu.add(processPaymentItem);
+            menu.add(viewProductReviewsItem);
+            menu.add(addReviewItem);
+            menu.add(viewAverageRatingItem);
+            menu.add(exitItem);
+
+            // Add action listeners for customer menu items
+            viewProductsItem.addActionListener(e -> viewProducts());
+            addCustomerItem.addActionListener(e -> addCustomer());
+            createOrderItem.addActionListener(e -> addOrderItem());
+            viewOrderDetailsItem.addActionListener(e -> viewOrderDetails());
+            processPaymentItem.addActionListener(e -> processPayment());
+            viewProductReviewsItem.addActionListener(e -> viewProductReviews());
+            addReviewItem.addActionListener(e -> addReview());
+            viewAverageRatingItem.addActionListener(e -> viewAverageRating());
+            exitItem.addActionListener(e -> System.exit(0));
+
+        } else if ("administrator".equals(userType)) {
+            JMenuItem addProductItem = new JMenuItem("Add Product");
+            JMenuItem deleteProductItem = new JMenuItem("Delete Product");
+            JMenuItem deleteCustomerItem = new JMenuItem("Delete Customer");
+            JMenuItem exitItem = new JMenuItem("Exit");
+
+            menu.add(addProductItem);
+            menu.add(deleteProductItem);
+            menu.add(deleteCustomerItem);
+            menu.add(exitItem);
+
+            // Add action listeners for administrator menu items
+            addProductItem.addActionListener(e -> addProduct());
+            deleteProductItem.addActionListener(e -> deleteProduct());
+            deleteCustomerItem.addActionListener(e -> deleteCustomer());
+            exitItem.addActionListener(e -> System.exit(0));
+        }
 
         setJMenuBar(menuBar);
 
-        // Add action listeners for menu items
-        viewProductsItem.addActionListener(e -> viewProducts());
-        addCustomerItem.addActionListener(e -> addCustomer());
-        createOrderItem.addActionListener(e -> addOrderItem());
-        viewOrderDetailsItem.addActionListener(e -> viewOrderDetails());
-        addProductItem.addActionListener(e -> addProduct());
-        processPaymentItem.addActionListener(e -> processPayment());
-        viewProductReviewsItem.addActionListener(e -> viewProductReviews());
-        addReviewItem.addActionListener(e -> addReview());
-        viewAverageRatingItem.addActionListener(e -> viewAverageRating());
-        deleteProductItem.addActionListener(e -> deleteProduct());
-        deleteCustomerItem.addActionListener(e -> deleteCustomer());
-        exitItem.addActionListener(e -> System.exit(0));
+        JLabel descriptionLabel = new JLabel("<html><div style='text-align: center;'>"
+                + "<h1>Welcome to Optimized Online Retail Cart Ecosystem</h1>"
+                + "<p>Your one-stop solution for managing products, customers, and orders.</p>"
+                + "<p>Switch between Customer and Administrator roles to explore functionalities.</p>"
+                + "<p>Efficient. Intuitive. Scalable.</p>"
+                + "</div></html>", SwingConstants.CENTER);
 
+        descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        add(descriptionLabel, BorderLayout.CENTER);
         setVisible(true);
     }
 
