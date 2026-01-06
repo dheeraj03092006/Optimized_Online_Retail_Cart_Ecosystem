@@ -22,6 +22,7 @@ class DatabaseConnection {
     }
 }
 
+
 // Customer class
 class Customer {
     private int id;
